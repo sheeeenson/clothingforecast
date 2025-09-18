@@ -24,6 +24,10 @@
     to { opacity: 1; transform: scale(1); }
   }
 </style>
+<link id="favicon" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='90' font-size='90'>👕</text></svg>">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='90' font-size='90'>🧥</text></svg>">
 </head>
 <body class="flex items-center justify-center min-h-screen p-4 bg-white text-black">
 
@@ -121,6 +125,9 @@ const loadingStates = [
   { emoji: '👑', text: 'Добавляем немного королевского шика!' }
 ];
 
+const faviconStates = ['👕', '👖', '👟', '🧥', '🧦'];
+let faviconIndex = 0;
+
 const displayMessage = msg => {
   const messageBox = document.getElementById('messageBox');
   messageBox.textContent = msg;
@@ -200,6 +207,12 @@ const initApp = async () => {
 window.onload = () => {
   document.getElementById('generateLook').addEventListener('click', generateLookHandler);
   initApp();
+  
+  setInterval(() => {
+    faviconIndex = (faviconIndex + 1) % faviconStates.length;
+    const emoji = faviconStates[faviconIndex];
+    document.getElementById('favicon').setAttribute('href', `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='90' font-size='90'>${emoji}</text></svg>`);
+  }, 1000);
 };
 </script>
 </body>
