@@ -92,7 +92,7 @@ export default async function handler(req, res) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { responseModality: ['TEXT', 'IMAGE'] },
+            generationConfig: { responseModality: ['IMAGE'] },
         })
     });
 
@@ -110,4 +110,3 @@ export default async function handler(req, res) {
     res.status(500).json({ error: error.message || 'An unexpected error occurred.' });
   }
 };
-
