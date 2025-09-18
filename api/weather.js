@@ -92,7 +92,7 @@ export default async function handler(req, res) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { responseModality: ['IMAGE'] },
+            // generationConfig: { responseModality: ['IMAGE'] },
         })
     });
 
