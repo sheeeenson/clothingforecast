@@ -96,139 +96,6 @@
 </div>
 
 <script type="module">
-// ------------------- GEO & WEATHER -------------------
-// Вставьте здесь ваш ключ API из переменных окружения Vercel.
-// НЕ добавляйте реальный ключ в код, если вы планируете загружать его на GitHub.
-const API_KEY = "YOUR_VERCEL_API_KEY";
-const fetchWeather = async (lat, lon) => {
-  const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=ru`);
-  const data = await res.json();
-  if (data.cod !== 200) throw new Error(data.message || 'Ошибка получения погоды');
-  return data;
-};
-
-// ------------------- OUTFIT -------------------
-const candidActions = [
-  'performing a dynamic floorwork move on a city street',
-  'leaping gracefully through the air like a ballet dancer on a sidewalk',
-  'striking a dramatic, abstract dance pose against a brick wall',
-  'doing a series of fast-paced, fluid movements as if in a dance battle',
-  'holding a stylized, impossible freeze-frame pose like a statue',
-  'executing a powerful spin with arms outstretched',
-  'recreating a classic pose from a modern dance performance',
-  'balancing on one leg with exaggerated posture as if on a stage',
-  'crouching low to the ground with a powerful, coiled pose',
-  'throwing their head back in an expression of pure, uninhibited motion'
-];
-const getRandomAction = () => {
-  return candidActions[Math.floor(Math.random() * candidActions.length)];
-};
-
-const generatePrompt = (temp, thermoType, description, city, gender, style, occasion) => {
-  const action = getRandomAction();
-  let genderWord;
-  switch (gender) {
-    case 'male':
-      genderWord = 'man';
-      break;
-    case 'female':
-      genderWord = 'woman';
-      break;
-    default:
-      genderWord = 'person';
-  }
-
-  let styleWords = '';
-  switch(style) {
-    case 'casual': styleWords = 'super stylish, fashion-forward, casual'; break;
-    case 'business': styleWords = 'elegant, sophisticated, business-casual'; break;
-    case 'evening': styleWords = 'chic, high-fashion, evening-wear'; break;
-    case 'sporty': styleWords = 'athletic, comfortable, urban sportswear'; break;
-  }
-
-  let occasionWords = '';
-  switch(occasion) {
-    case 'city walk': occasionWords = 'on a city street'; break;
-    case 'cafe evening': occasionWords = 'inside a cozy cafe'; break;
-    case 'date night': occasionWords = 'in a romantic restaurant'; break;
-    case 'active leisure': occasionWords = 'at a dynamic sports location'; break;
-  }
-  
-  let prompt = `a candid, photojournalistic style photo of a stylish ${genderWord} with a big, joyful smile, looking directly at the camera while ${action} ${occasionWords} in ${city}, full body shot, wearing a ${styleWords} outfit like from Pinterest`;
-  if (description.includes('дождь') || description.includes('ливень')) prompt += ', overcast and raining, wet pavement, holding an umbrella';
-  else if (description.includes('снег') || temp < -5) prompt += ', a snowy city street, cold and wintry day';
-  else if (temp > 25) prompt += ', a sunny summer day';
-  else if (temp > 15) prompt += ', a warm, pleasant day';
-  else if (temp > 5) prompt += ', a cool, crisp autumn day';
-  else prompt += ', a chilly winter day';
-
-  if (temp < 0) prompt += ', wearing a thick winter coat, scarf, hat, and gloves';
-  else if (temp >= 0 && temp < 10) {
-    if (thermoType === 'hot') prompt += ', wearing a light jacket over a sweater';
-    else if (thermoType === 'normal') prompt += ', wearing a warm jacket, beanie, and a scarf';
-    else prompt += ', wearing a very thick winter jacket and multiple layers';
-  } else if (temp >= 10 && temp < 20) {
-    if (thermoType === 'hot') prompt += ', wearing a light windbreaker or cardigan';
-    else if (thermoType === 'normal') prompt += ', wearing a sweater or hoodie';
-    else prompt += ', wearing a warm jacket';
-  } else if (temp >= 20 && temp < 25) {
-    if (thermoType === 'hot') prompt += ', wearing a t-shirt and shorts';
-    else prompt += ', wearing a long-sleeve shirt and jeans';
-  } else prompt += ', wearing light summer clothing, shorts and a t-shirt';
-
-  return prompt + ', high-quality photograph, realistic, detailed, cinematic lighting, ultra-realistic';
-};
-
-// Функция для генерации изображения с базовой логикой повторных попыток
-const generateOutfitImage = async (prompt, retries = 3, delay = 1000) => {
-  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${API_KEY}`;
-  const payload = {
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { responseModality: ['TEXT', 'IMAGE'] },
-  };
-
-  for (let i = 0; i < retries; i++) {
-    try {
-      const res = await fetch(apiUrl, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-      
-      if (!res.ok) {
-        if (res.status === 429 && i < retries - 1) { // Too Many Requests
-          console.warn(`Попытка ${i + 1}/${retries}: Слишком много запросов. Повтор через ${delay / 1000}с...`);
-          await new Promise(res => setTimeout(res, delay));
-          delay *= 2; // Экспоненциальная задержка
-          continue;
-        }
-        let errorText = `Ошибка генерации изображения: ${res.status} ${res.statusText}`;
-        if (res.status === 401) errorText = 'Ошибка авторизации. Проверьте ваш ключ API.';
-        else {
-          try {
-            const errorData = await res.json();
-            if (errorData?.error?.message) errorText = `Ошибка генерации изображения: ${errorData.error.message}`;
-          } catch (e) { console.error('Не удалось разобрать JSON ответа об ошибке', e); }
-        }
-        throw new Error(errorText);
-      }
-
-      const result = await res.json();
-      const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
-      if (base64Data) return `data:image/png;base64,${base64Data}`;
-      throw new Error('Не удалось получить изображение из ответа API');
-      
-    } catch (e) {
-      if (i < retries - 1 && e.message.includes('Failed to fetch')) {
-        console.warn(`Попытка ${i + 1}/${retries}: Сетевая ошибка. Повтор через ${delay / 1000}с...`);
-        await new Promise(res => setTimeout(res, delay));
-        delay *= 2;
-      } else {
-        throw e;
-      }
-    }
-  }
-  throw new Error('Не удалось сгенерировать изображение после нескольких попыток.');
-};
-
-// ------------------- MAIN -------------------
-let currentWeather = null;
 let loadingInterval = null;
 
 const loadingStates = [
@@ -259,19 +126,7 @@ const displayMessage = msg => {
   messageBox.textContent = msg;
 };
 
-const displayModalMessage = msg => {
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.innerHTML = `
-    <div class="modal-content">
-      <p>${msg}</p>
-      <button class="mt-4 px-4 py-2 bg-gray-800 text-white rounded-md" onclick="this.closest('.modal-overlay').remove()">OK</button>
-    </div>`;
-  document.body.appendChild(overlay);
-};
-
 const generateLookHandler = async () => {
-    // Show loading state
     const outfitImage = document.getElementById('outfitImage');
     const loadingIndicator = document.getElementById('loadingIndicator');
     const messageBox = document.getElementById('messageBox');
@@ -292,65 +147,54 @@ const generateLookHandler = async () => {
     const gender = document.getElementById('genderSelect').value;
     const style = document.getElementById('styleSelect').value;
     const occasion = document.getElementById('occasionSelect').value;
-    const prompt = generatePrompt(currentWeather.main.temp, thermoType, currentWeather.weather[0].description, currentWeather.name, gender, style, occasion);
-
-    try {
-        const outfitUrl = await generateOutfitImage(prompt);
-        outfitImage.src = outfitUrl;
-    } catch(e){
-        outfitImage.src = `https://placehold.co/500x500/000000/ffffff?text=Ошибка+генерации`;
-        displayMessage(e.message); 
-        console.error(e); 
-    } finally {
-        clearInterval(loadingInterval);
-        loadingIndicator.style.opacity = '0';
-        outfitImage.style.opacity = '1';
-    }
-};
-
-const initApp = async () => {
-    const loadingIndicator = document.getElementById('loadingIndicator');
-    const outfitImage = document.getElementById('outfitImage');
-    const weatherDisplay = document.getElementById('weatherDisplay');
-    const controls = document.getElementById('controls');
-
-    // Make sure the loading indicator is visible at the start
-    loadingIndicator.style.opacity = '1';
-    outfitImage.style.opacity = '0';
-    weatherDisplay.style.opacity = '0';
-    controls.style.opacity = '0';
 
     try {
         let lat, lon;
         if ("geolocation" in navigator) {
             const position = await new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject);
+                navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
             });
             lat = position.coords.latitude;
             lon = position.coords.longitude;
-            displayMessage('Местоположение определено. Загружаем прогноз...');
         } else {
-            // Fallback to Moscow if geolocation is not available
             lat = 55.7558;
             lon = 37.6173;
-            displayMessage('Невозможно определить местоположение. Используем координаты Москвы.');
         }
 
-        currentWeather = await fetchWeather(lat, lon);
+        const res = await fetch('/api/weather', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lat, lon, thermoType, gender, style, occasion })
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || 'Не удалось получить данные от сервера.');
+        }
+
+        const data = await res.json();
+        const { outfitImage: outfitUrl, weatherData } = data;
         
-        // Update weather display and show it
-        document.getElementById('currentTemp').textContent = `${Math.round(currentWeather.main.temp)}°C`;
-        document.getElementById('weatherDesc').textContent = `${currentWeather.name}, ${currentWeather.weather[0].description}`;
-        weatherDisplay.style.opacity = '1';
-        controls.style.opacity = '1';
-        
-        await generateLookHandler();
-    } catch(e) {
+        document.getElementById('currentTemp').textContent = `${Math.round(weatherData.main.temp)}°C`;
+        document.getElementById('weatherDesc').textContent = `${weatherData.name}, ${weatherData.weather[0].description}`;
+
+        document.getElementById('outfitImage').src = `data:image/png;base64,${outfitUrl}`;
+
+    } catch(e){
+        document.getElementById('outfitImage').src = `https://placehold.co/500x500/000000/ffffff?text=Ошибка+генерации`;
+        displayMessage(e.message); 
+        console.error(e); 
+    } finally {
         clearInterval(loadingInterval);
         loadingIndicator.style.opacity = '0';
-        displayMessage('Невозможно получить погодные рекомендации.');
-        console.error(e);
+        document.getElementById('outfitImage').style.opacity = '1';
     }
+};
+
+const initApp = async () => {
+    document.getElementById('weatherDisplay').style.opacity = '1';
+    document.getElementById('controls').style.opacity = '1';
+    await generateLookHandler();
 };
 
 window.onload = () => {
