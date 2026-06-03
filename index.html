@@ -1,219 +1,417 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Прогноз одежды</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
-  body { font-family: 'Inter', sans-serif; background-color: #fff; }
-  .container { max-width: 600px; }
-  .modal-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(0,0,0,0.5); display: flex;
-    justify-content: center; align-items: center; z-index: 1000;
-  }
-  .modal-content {
-    background-color: #fff; padding: 24px; border-radius: 12px;
-    text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    animation: fadeIn 0.3s ease-out; color: #000;
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
-  }
-</style>
-<link id="favicon" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='90' font-size='90'>👕</text></svg>">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='90' font-size='90'>🧥</text></svg>">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clothing Forecast — что надеть сегодня</title>
+  <meta name="description" content="Погодное приложение, которое показывает не градусы, а готовый образ на улицу." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      color-scheme: light;
+      --ink: #151515;
+      --muted: #6b645f;
+      --cream: #fff8ef;
+      --peach: #ffd7ba;
+      --rose: #ffb4c2;
+      --lime: #d8f275;
+      --sky: #bfe7ff;
+      --card: rgba(255, 255, 255, 0.78);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 8%, rgba(255, 180, 194, 0.9), transparent 26%),
+        radial-gradient(circle at 84% 10%, rgba(191, 231, 255, 0.95), transparent 28%),
+        radial-gradient(circle at 74% 92%, rgba(216, 242, 117, 0.9), transparent 30%),
+        linear-gradient(135deg, #fff8ef 0%, #fff1e6 45%, #ffffff 100%);
+      overflow-x: hidden;
+    }
+
+    .noise::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.38;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.18'/%3E%3C/svg%3E");
+      mix-blend-mode: soft-light;
+    }
+
+    .glass {
+      background: var(--card);
+      border: 1px solid rgba(21, 21, 21, 0.12);
+      box-shadow: 0 24px 80px rgba(77, 54, 38, 0.16);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+    }
+
+    .pill {
+      border: 1px solid rgba(21, 21, 21, 0.12);
+      background: rgba(255, 255, 255, 0.62);
+      backdrop-filter: blur(12px);
+    }
+
+    .select-field {
+      appearance: none;
+      width: 100%;
+      border: 1px solid rgba(21, 21, 21, 0.14);
+      background: rgba(255, 255, 255, 0.72);
+      border-radius: 18px;
+      padding: 14px 42px 14px 14px;
+      font-weight: 650;
+      outline: none;
+      transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+      background-image: linear-gradient(45deg, transparent 50%, #151515 50%), linear-gradient(135deg, #151515 50%, transparent 50%);
+      background-position: calc(100% - 22px) calc(50% - 3px), calc(100% - 16px) calc(50% - 3px);
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+    }
+
+    .select-field:focus {
+      border-color: rgba(21, 21, 21, 0.42);
+      box-shadow: 0 0 0 4px rgba(255, 180, 194, 0.34);
+    }
+
+    .select-field:hover { transform: translateY(-1px); }
+
+    .primary-btn {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      border: 0;
+      border-radius: 999px;
+      background: #151515;
+      color: #fff;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      box-shadow: 0 20px 45px rgba(21, 21, 21, 0.22);
+      transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+    }
+
+    .primary-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: linear-gradient(90deg, #151515, #4a312b, #151515);
+      opacity: 0;
+      transition: opacity 180ms ease;
+    }
+
+    .primary-btn:hover { transform: translateY(-2px); box-shadow: 0 26px 54px rgba(21, 21, 21, 0.26); }
+    .primary-btn:hover::before { opacity: 1; }
+    .primary-btn:disabled { opacity: 0.62; cursor: not-allowed; transform: none; }
+
+    .image-shell {
+      min-height: 440px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.75), rgba(255, 248, 239, 0.78)),
+        radial-gradient(circle at 50% 30%, rgba(255, 180, 194, 0.45), transparent 42%);
+    }
+
+    .loader-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #151515;
+      animation: pulse 1s infinite ease-in-out;
+    }
+
+    .loader-dot:nth-child(2) { animation-delay: 0.14s; }
+    .loader-dot:nth-child(3) { animation-delay: 0.28s; }
+
+    @keyframes pulse {
+      0%, 80%, 100% { transform: scale(0.72); opacity: 0.42; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    .float-card { animation: float 7s ease-in-out infinite; }
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(-1deg); }
+      50% { transform: translateY(-10px) rotate(1deg); }
+    }
+
+    @media (max-width: 768px) {
+      .image-shell { min-height: 340px; }
+    }
+  </style>
+  <link id="favicon" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='90' font-size='90'>👕</text></svg>">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='90' font-size='90'>🧥</text></svg>">
 </head>
-<body class="flex items-center justify-center min-h-screen p-4 bg-white text-black">
+<body class="noise">
+  <main class="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-6 sm:px-6 lg:px-8">
+    <header class="flex items-center justify-between gap-4 py-2">
+      <div class="pill rounded-full px-4 py-2 text-sm font-bold">👕 Clothing Forecast</div>
+      <button id="locationBtn" class="pill rounded-full px-4 py-2 text-sm font-bold transition hover:-translate-y-0.5">📍 Обновить город</button>
+    </header>
 
-<div class="container bg-white rounded-xl shadow-md p-6 md:p-10 text-center w-full text-black border border-black">
-  <h1 class="text-3xl md:text-4xl font-bold mb-2">Прогноз одежды</h1>
-  <p class="text-lg md:text-xl font-medium text-gray-500 mb-6">Твой стилист в мире погоды</p>
-
-  <div id="mainContent" class="mt-8 text-left space-y-4">
-    <div id="weatherDisplay" class="bg-white p-4 rounded-xl shadow-md flex items-center justify-between mb-6 border border-black opacity-0 transition-opacity duration-500">
-      <h3 id="currentTemp" class="text-xl font-bold"></h3>
-      <p id="weatherDesc" class="text-lg text-gray-500"></p>
-    </div>
-
-    <div id="outfitResult" class="bg-white rounded-2xl p-6 relative border border-black">
-      <!-- Контейнер для загрузки с эмодзи -->
-      <div id="loadingIndicator" class="absolute inset-0 flex flex-col items-center justify-center text-center transition-opacity duration-500 h-full">
-        <span id="loadingEmoji" class="text-6xl mb-2 animate-bounce"></span>
-        <span id="loadingText" class="text-xl text-black"></span>
-      </div>
-      <!-- Основное изображение -->
-      <img id="outfitImage" src="https://placehold.co/500x500/000000/ffffff?text=Нажмите+для+генерации" class="w-full h-auto object-contain rounded-lg shadow-md transition-opacity duration-500 opacity-0">
-    </div>
-
-    <div id="controls" class="opacity-0 transition-opacity duration-500">
-      <div class="grid grid-cols-2 gap-4 mt-6 mb-6 text-black">
-        <div>
-          <label for="thermoSelect" class="block text-sm font-medium mb-1">Терморегуляция</label>
-          <select id="thermoSelect" class="p-2 rounded-lg border border-black bg-white w-full text-center">
-            <option value="cold" selected>Вечно в поисках тепла</option>
-            <option value="normal">Золотая середина</option>
-            <option value="hot">Прохлада мне нипочём</option>
-          </select>
+    <section class="grid flex-1 items-center gap-8 py-8 lg:grid-cols-[0.92fr_1.08fr] lg:py-12">
+      <div class="space-y-7">
+        <div class="space-y-5">
+          <div class="inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-sm font-bold shadow-sm">
+            <span class="h-2 w-2 rounded-full bg-black"></span>
+            Прогноз, который сразу показывает, что надеть
+          </div>
+          <h1 class="max-w-3xl text-5xl font-black tracking-[-0.055em] sm:text-6xl lg:text-7xl">
+            Не градусы. <br />Готовый лук на улицу.
+          </h1>
+          <p class="max-w-2xl text-lg font-medium leading-8 text-[var(--muted)] sm:text-xl">
+            Приложение смотрит погоду в твоём городе, учитывает стиль, ситуацию и то, как ты чувствуешь температуру, а потом показывает образ, который можно повторить сегодня.
+          </p>
         </div>
-        <div>
-          <label for="genderSelect" class="block text-sm font-medium mb-1">Пол</label>
-          <select id="genderSelect" class="p-2 rounded-lg border border-black bg-white w-full text-center">
-            <option value="any" selected>Любой</option>
-            <option value="male">Мужской</option>
-            <option value="female">Женский</option>
-          </select>
+
+        <div class="glass rounded-[32px] p-4 sm:p-5">
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label class="space-y-2">
+              <span class="text-xs font-black uppercase tracking-[0.18em] text-[var(--muted)]">Терморегуляция</span>
+              <select id="thermoSelect" class="select-field">
+                <option value="cold" selected>Я часто мёрзну</option>
+                <option value="normal">Мне обычно нормально</option>
+                <option value="hot">Мне быстро жарко</option>
+              </select>
+            </label>
+
+            <label class="space-y-2">
+              <span class="text-xs font-black uppercase tracking-[0.18em] text-[var(--muted)]">Пол</span>
+              <select id="genderSelect" class="select-field">
+                <option value="any" selected>Любой</option>
+                <option value="male">Мужской</option>
+                <option value="female">Женский</option>
+              </select>
+            </label>
+
+            <label class="space-y-2">
+              <span class="text-xs font-black uppercase tracking-[0.18em] text-[var(--muted)]">Стиль</span>
+              <select id="styleSelect" class="select-field">
+                <option value="casual" selected>Повседневный</option>
+                <option value="business">Деловой</option>
+                <option value="evening">Вечерний</option>
+                <option value="sporty">Спортивный</option>
+                <option value="minimal">Минимализм</option>
+                <option value="streetwear">Streetwear</option>
+              </select>
+            </label>
+
+            <label class="space-y-2">
+              <span class="text-xs font-black uppercase tracking-[0.18em] text-[var(--muted)]">Ситуация</span>
+              <select id="occasionSelect" class="select-field">
+                <option value="city walk" selected>Прогулка по городу</option>
+                <option value="office day">Рабочий день</option>
+                <option value="cafe evening">Вечер в кафе</option>
+                <option value="date night">Свидание</option>
+                <option value="active leisure">Активный отдых</option>
+              </select>
+            </label>
+          </div>
+
+          <button id="generateLook" class="primary-btn mt-5 w-full px-6 py-4 text-base sm:text-lg">
+            Показать, как одеться сегодня →
+          </button>
+
+          <p id="messageBox" class="mt-4 hidden rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"></p>
+        </div>
+
+        <div class="grid gap-3 text-sm font-bold text-[var(--muted)] sm:grid-cols-3">
+          <div class="pill rounded-3xl p-4">🌦 Погода в реальном времени</div>
+          <div class="pill rounded-3xl p-4">🧥 Образ под температуру</div>
+          <div class="pill rounded-3xl p-4">✨ Генерация через AI</div>
         </div>
       </div>
-      <div class="grid grid-cols-2 gap-4 mt-6 mb-6 text-black">
-        <div>
-          <label for="styleSelect" class="block text-sm font-medium mb-1">Стиль</label>
-          <select id="styleSelect" class="p-2 rounded-lg border border-black bg-white w-full text-center">
-            <option value="casual" selected>Повседневный</option>
-            <option value="business">Деловой</option>
-            <option value="evening">Вечерний</option>
-            <option value="sporty">Спортивный</option>
-          </select>
+
+      <div class="glass float-card overflow-hidden rounded-[40px] p-3 sm:p-4">
+        <div class="relative image-shell flex items-center justify-center overflow-hidden rounded-[32px] border border-black/10">
+          <div class="absolute left-4 top-4 z-20 flex flex-wrap gap-2" id="weatherBadges">
+            <span class="rounded-full bg-white/85 px-4 py-2 text-sm font-black shadow-sm">Определяем погоду…</span>
+          </div>
+
+          <div id="emptyState" class="max-w-sm p-8 text-center">
+            <div class="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-black text-4xl text-white">☁️</div>
+            <h2 class="mb-2 text-2xl font-black tracking-tight">Твой образ появится здесь</h2>
+            <p class="font-medium text-[var(--muted)]">Разреши геолокацию или нажми кнопку — если геолокация недоступна, используем Тбилиси как демо-город.</p>
+          </div>
+
+          <div id="loadingIndicator" class="absolute inset-0 z-30 hidden flex-col items-center justify-center bg-white/78 text-center backdrop-blur-md">
+            <div id="loadingEmoji" class="mb-4 text-7xl">✨</div>
+            <div id="loadingText" class="mb-5 text-xl font-black">Собираем лук по погоде…</div>
+            <div class="flex gap-2"><span class="loader-dot"></span><span class="loader-dot"></span><span class="loader-dot"></span></div>
+          </div>
+
+          <img id="outfitImage" alt="Сгенерированный образ одежды под текущую погоду" class="hidden h-full max-h-[680px] w-full object-contain" />
         </div>
-        <div>
-          <label for="occasionSelect" class="block text-sm font-medium mb-1">Ситуация</label>
-          <select id="occasionSelect" class="p-2 rounded-lg border border-black bg-white w-full text-center">
-            <option value="city walk" selected>Прогулка по городу</option>
-            <option value="cafe evening">Вечер в кафе</option>
-            <option value="date night">Свидание</option>
-            <option value="active leisure">Активный отдых</option>
-          </select>
+
+        <div class="grid gap-3 p-3 sm:grid-cols-3 sm:p-4">
+          <div class="rounded-3xl bg-white/65 p-4">
+            <p class="text-xs font-black uppercase tracking-[0.16em] text-[var(--muted)]">Город</p>
+            <p id="cityText" class="mt-1 text-lg font-black">—</p>
+          </div>
+          <div class="rounded-3xl bg-white/65 p-4">
+            <p class="text-xs font-black uppercase tracking-[0.16em] text-[var(--muted)]">Температура</p>
+            <p id="tempText" class="mt-1 text-lg font-black">—</p>
+          </div>
+          <div class="rounded-3xl bg-white/65 p-4">
+            <p class="text-xs font-black uppercase tracking-[0.16em] text-[var(--muted)]">Ощущается</p>
+            <p id="feelsText" class="mt-1 text-lg font-black">—</p>
+          </div>
         </div>
       </div>
-      
-      <div class="flex flex-col md:flex-row gap-2">
-        <button id="generateLook" class="bg-white hover:bg-gray-100 text-black p-3 rounded-lg flex-1 transition-colors duration-200 border border-black">Собрать лук по погоде</button>
-      </div>
-    </div>
-    <div id="messageBox" class="mt-4 text-center text-red-400"></div>
-  </div>
-</div>
+    </section>
+  </main>
 
-<script type="module">
-let loadingInterval = null;
+  <script type="module">
+    const FALLBACK_LOCATION = { lat: 41.7151, lon: 44.8271, source: 'fallback' }; // Tbilisi demo fallback
 
-const loadingStates = [
-  { emoji: '✨', text: 'Добавляем немного магии...' },
-  { emoji: '🧸', text: 'Придумываем самый милый образ...' },
-  { emoji: '👒', text: 'Выбираем шапочку, чтобы было тепло...' },
-  { emoji: '☕', text: 'Подожди, я заварю чай...' },
-  { emoji: '🚀', text: 'Запускаем ракету в космос стиля!' },
-  { emoji: '🧚', text: 'Добавляем немного волшебства...' },
-  { emoji: '🌈', text: 'Ищем радугу для твоего настроения!' },
-  { emoji: '👖', text: 'Подбираем джинсы для танцев...' },
-  { emoji: '👟', text: 'Шнуруем кроссовки для пробежки...' },
-  { emoji: '🕺', text: 'Делаем грациозную позу!' },
-  { emoji: '🌞', text: 'Солнце улыбается!' },
-  { emoji: '🌬️', text: 'Ветер закручивает идею!' },
-  { emoji: '🧥', text: 'Выбираем пальто потеплее...' },
-  { emoji: '🌧️', text: 'Проверяем зонт на прочность...' },
-  { emoji: '🧣', text: 'Подбираем шарф к твоему настроению...' },
-  { emoji: '🧤', text: 'Ищем перчатки, чтобы руки не мёрзли...' },
-  { emoji: '🧦', text: 'Подбираем носочки для уюта...' },
-  { emoji: '👓', text: 'Делаем образ умнее...' },
-  { emoji: '🎒', text: 'Находим самый удобный рюкзак...' },
-  { emoji: '👑', text: 'Добавляем немного королевского шика!' }
-];
+    const loadingStates = [
+      { emoji: '✨', text: 'Переводим погоду в одежду…' },
+      { emoji: '🧥', text: 'Проверяем, нужна ли куртка…' },
+      { emoji: '👟', text: 'Подбираем обувь под улицу…' },
+      { emoji: '🌦️', text: 'Сверяем температуру и настроение…' },
+      { emoji: '🪞', text: 'Собираем образ, который хочется повторить…' },
+      { emoji: '📍', text: 'Адаптируем лук под город…' }
+    ];
 
-const faviconStates = ['👕', '👖', '👟', '🧥', '🧦'];
-let faviconIndex = 0;
+    const faviconStates = ['👕', '👖', '👟', '🧥', '🧣', '☂️'];
+    let loadingInterval = null;
+    let faviconIndex = 0;
 
-const displayMessage = msg => {
-  const messageBox = document.getElementById('messageBox');
-  messageBox.textContent = msg;
-};
+    const $ = id => document.getElementById(id);
 
-const generateLookHandler = async () => {
-    const outfitImage = document.getElementById('outfitImage');
-    const loadingIndicator = document.getElementById('loadingIndicator');
-    const messageBox = document.getElementById('messageBox');
-    
-    outfitImage.style.opacity = '0';
-    loadingIndicator.style.opacity = '1';
-    messageBox.textContent = '';
-    
-    let stateIndex = 0;
-    loadingInterval = setInterval(() => {
-        const state = loadingStates[stateIndex];
-        document.getElementById('loadingEmoji').textContent = state.emoji;
-        document.getElementById('loadingText').textContent = state.text;
-        stateIndex = (stateIndex + 1) % loadingStates.length;
-    }, 1000);
+    const setMessage = message => {
+      const box = $('messageBox');
+      if (!message) {
+        box.classList.add('hidden');
+        box.textContent = '';
+        return;
+      }
+      box.textContent = message;
+      box.classList.remove('hidden');
+    };
 
-    const thermoType = document.getElementById('thermoSelect').value;
-    const gender = document.getElementById('genderSelect').value;
-    const style = document.getElementById('styleSelect').value;
-    const occasion = document.getElementById('occasionSelect').value;
+    const setLoading = isLoading => {
+      const loader = $('loadingIndicator');
+      const button = $('generateLook');
 
-    try {
-        let lat, lon;
-        if ("geolocation" in navigator) {
-            const position = await new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
-            });
-            lat = position.coords.latitude;
-            lon = position.coords.longitude;
-        } else {
-            lat = 55.7558;
-            lon = 37.6173;
-        }
+      button.disabled = isLoading;
+      button.textContent = isLoading ? 'Собираем образ…' : 'Показать, как одеться сегодня →';
 
-        const res = await fetch('/api/weather', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lat, lon, thermoType, gender, style, occasion })
+      if (isLoading) {
+        let index = 0;
+        loader.classList.remove('hidden');
+        loader.classList.add('flex');
+        loadingInterval = setInterval(() => {
+          const state = loadingStates[index];
+          $('loadingEmoji').textContent = state.emoji;
+          $('loadingText').textContent = state.text;
+          index = (index + 1) % loadingStates.length;
+        }, 950);
+      } else {
+        clearInterval(loadingInterval);
+        loader.classList.add('hidden');
+        loader.classList.remove('flex');
+      }
+    };
+
+    const getLocation = () => new Promise(resolve => {
+      if (!('geolocation' in navigator)) return resolve(FALLBACK_LOCATION);
+
+      navigator.geolocation.getCurrentPosition(
+        position => resolve({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+          source: 'browser'
+        }),
+        () => resolve(FALLBACK_LOCATION),
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 10 * 60 * 1000 }
+      );
+    });
+
+    const getFormPayload = () => ({
+      thermoType: $('thermoSelect').value,
+      gender: $('genderSelect').value,
+      style: $('styleSelect').value,
+      occasion: $('occasionSelect').value
+    });
+
+    const renderWeather = (weatherData, usedFallback) => {
+      const temp = Math.round(weatherData.main.temp);
+      const feels = Math.round(weatherData.main.feels_like ?? weatherData.main.temp);
+      const description = weatherData.weather?.[0]?.description || 'погода';
+      const wind = weatherData.wind?.speed ? `${Math.round(weatherData.wind.speed)} м/с` : 'ветер —';
+      const city = weatherData.name || (usedFallback ? 'Тбилиси' : 'Твой город');
+
+      $('cityText').textContent = city;
+      $('tempText').textContent = `${temp}°C`;
+      $('feelsText').textContent = `${feels}°C`;
+      $('weatherBadges').innerHTML = `
+        <span class="rounded-full bg-white/90 px-4 py-2 text-sm font-black shadow-sm">📍 ${city}</span>
+        <span class="rounded-full bg-white/90 px-4 py-2 text-sm font-black shadow-sm">${temp}°C</span>
+        <span class="rounded-full bg-white/90 px-4 py-2 text-sm font-black shadow-sm">${description}</span>
+        <span class="rounded-full bg-white/90 px-4 py-2 text-sm font-black shadow-sm">💨 ${wind}</span>
+      `;
+    };
+
+    const generateLook = async () => {
+      setMessage('');
+      setLoading(true);
+
+      try {
+        const location = await getLocation();
+        const payload = { ...location, ...getFormPayload() };
+
+        const response = await fetch('/api/weather', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
         });
 
-        if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.error || 'Не удалось получить данные от сервера.');
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Не удалось собрать образ. Проверь API-ключи и попробуй ещё раз.');
         }
 
-        const data = await res.json();
-        const { outfitImage: outfitUrl, weatherData } = data;
-        
-        document.getElementById('currentTemp').textContent = `${Math.round(weatherData.main.temp)}°C`;
-        document.getElementById('weatherDesc').textContent = `${weatherData.name}, ${weatherData.weather[0].description}`;
+        if (!data.outfitImage || !data.weatherData) {
+          throw new Error('Сервер вернул неполный ответ. Попробуй сгенерировать ещё раз.');
+        }
 
-        document.getElementById('outfitImage').src = `data:image/png;base64,${outfitUrl}`;
+        renderWeather(data.weatherData, location.source === 'fallback');
 
-    } catch(e){
-        document.getElementById('outfitImage').src = `https://placehold.co/500x500/000000/ffffff?text=Ошибка+генерации`;
-        displayMessage(e.message); 
-        console.error(e); 
-    } finally {
-        clearInterval(loadingInterval);
-        loadingIndicator.style.opacity = '0';
-        document.getElementById('outfitImage').style.opacity = '1';
-    }
-};
+        $('emptyState').classList.add('hidden');
+        $('outfitImage').src = `data:image/png;base64,${data.outfitImage}`;
+        $('outfitImage').classList.remove('hidden');
+      } catch (error) {
+        console.error(error);
+        setMessage(error.message || 'Что-то пошло не так. Попробуй ещё раз.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-const initApp = async () => {
-    document.getElementById('weatherDisplay').style.opacity = '1';
-    document.getElementById('controls').style.opacity = '1';
-    await generateLookHandler();
-};
+    window.addEventListener('load', () => {
+      $('generateLook').addEventListener('click', generateLook);
+      $('locationBtn').addEventListener('click', generateLook);
+      ['thermoSelect', 'genderSelect', 'styleSelect', 'occasionSelect'].forEach(id => {
+        $(id).addEventListener('change', generateLook);
+      });
 
-window.onload = () => {
-  document.getElementById('generateLook').addEventListener('click', generateLookHandler);
-  initApp();
-  
-  setInterval(() => {
-    faviconIndex = (faviconIndex + 1) % faviconStates.length;
-    const emoji = faviconStates[faviconIndex];
-    document.getElementById('favicon').setAttribute('href', `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='90' font-size='90'>${emoji}</text></svg>`);
-  }, 1000);
-};
-</script>
+      setInterval(() => {
+        faviconIndex = (faviconIndex + 1) % faviconStates.length;
+        const emoji = faviconStates[faviconIndex];
+        $('favicon').setAttribute('href', `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='90' font-size='90'>${emoji}</text></svg>`);
+      }, 1200);
+
+      generateLook();
+    });
+  </script>
 </body>
 </html>
