@@ -1,5 +1,6 @@
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.YOUR_VERCEL_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
+const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-5.5';
 
 const candidActions = [
   'walking confidently across a modern city street',
@@ -97,10 +98,19 @@ const generatePrompt = ({ temp, feelsLike, description, city, windSpeed, thermoT
   ].join(', ');
 };
 
-const getBase64ImageFromGemini = geminiData => {
-  const parts = geminiData?.candidates?.[0]?.content?.parts || [];
-  const imagePart = parts.find(part => part?.inlineData?.data);
-  return imagePart?.inlineData?.data || null;
+const getBase64ImageFromOpenAI = data => {
+  const output = Array.isArray(data?.output) ? data.output : [];
+  const imageCall = output.find(item => item?.type === 'image_generation_call' && item?.result);
+
+  if (imageCall?.result) return imageCall.result;
+
+  for (const item of output) {
+    const content = Array.isArray(item?.content) ? item.content : [];
+    const imageContent = content.find(part => part?.type === 'output_image' && part?.image_base64);
+    if (imageContent?.image_base64) return imageContent.image_base64;
+  }
+
+  return null;
 };
 
 export default async function handler(req, res) {
@@ -112,8 +122,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'OPENWEATHER_API_KEY is not configured.' });
   }
 
-  if (!GEMINI_API_KEY) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY is not configured.' });
+  if (!OPENAI_API_KEY) {
+    return res.status(500).json({ error: 'OPENAI_API_KEY is not configured.' });
   }
 
   try {
@@ -149,24 +159,29 @@ export default async function handler(req, res) {
       occasion
     });
 
-    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${GEMINI_API_KEY}`, {
+    const openaiRes = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${OPENAI_API_KEY}`
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
+        model: OPENAI_IMAGE_MODEL,
+        input: prompt,
+        tools: [{ type: 'image_generation' }]
       })
     });
 
-    const geminiData = await geminiRes.json();
+    const openaiData = await openaiRes.json();
 
-    if (!geminiRes.ok) {
-      throw new Error(geminiData?.error?.message || 'Error generating image.');
+    if (!openaiRes.ok) {
+      throw new Error(openaiData?.error?.message || 'Error generating image with OpenAI.');
     }
 
-    const base64Image = getBase64ImageFromGemini(geminiData);
+    const base64Image = getBase64ImageFromOpenAI(openaiData);
 
     if (!base64Image) {
-      throw new Error('Gemini did not return an image. Try generating again.');
+      throw new Error('OpenAI did not return an image. Try generating again.');
     }
 
     return res.status(200).json({
