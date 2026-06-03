@@ -16,7 +16,7 @@ Clothing Forecast отвечает на реальный вопрос польз
 - Учитывает субъективное ощущение температуры: пользователь мёрзнет, чувствует нормально или быстро перегревается.
 - Позволяет выбрать стиль: casual, business, evening, sporty, minimal, streetwear.
 - Позволяет выбрать ситуацию: прогулка, офис, кафе, свидание, активный отдых.
-- Генерирует реалистичный full-body outfit через Gemini image model.
+- Генерирует реалистичный full-body outfit через OpenAI image generation.
 - Если геолокация недоступна, использует Тбилиси как демо-город.
 
 ## Структура
@@ -26,6 +26,7 @@ Clothing Forecast отвечает на реальный вопрос польз
 ├── index.html          # Frontend: landing + controls + result card
 ├── api/
 │   └── weather.js      # Vercel serverless API: weather + AI outfit generation
+├── .env.example
 └── README.md
 ```
 
@@ -35,17 +36,19 @@ Clothing Forecast отвечает на реальный вопрос польз
 
 ```env
 OPENWEATHER_API_KEY=your_openweather_key
-GEMINI_API_KEY=your_gemini_key
+OPENAI_API_KEY=your_openai_key
+OPENAI_IMAGE_MODEL=gpt-5.5
 ```
 
-Для обратной совместимости backend также читает старое имя `YOUR_VERCEL_API_KEY`, но лучше использовать `GEMINI_API_KEY`.
+`OPENAI_IMAGE_MODEL` можно не задавать: по умолчанию используется `gpt-5.5`.
 
 ## Запуск на Vercel
 
 1. Создай проект на Vercel из этого репозитория.
 2. Добавь env-переменные:
    - `OPENWEATHER_API_KEY`
-   - `GEMINI_API_KEY`
+   - `OPENAI_API_KEY`
+   - `OPENAI_IMAGE_MODEL` — опционально
 3. Задеплой проект.
 4. Открой приложение и разреши геолокацию.
 
